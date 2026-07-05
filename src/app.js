@@ -1,10 +1,11 @@
 import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/GLTFLoader.js';
 
 const upgrades = [
-  { id: 'platform', title: 'Платформа', description: 'Больше пассажиров садятся на поезд.', baseCost: 80, level: 0, maxLevel: 6, income: 9, passengers: 14, cargo: 0 },
-  { id: 'cargo', title: 'Грузовой склад', description: 'Контейнеры дают стабильную прибыль.', baseCost: 150, level: 0, maxLevel: 5, income: 18, passengers: 0, cargo: 10 },
-  { id: 'engine', title: 'Локомотив', description: 'Скорость рейсов и базовая выручка растут.', baseCost: 260, level: 0, maxLevel: 5, income: 35, passengers: 6, cargo: 4 },
-  { id: 'city', title: 'Город у станции', description: 'Дома и офисы создают новый спрос.', baseCost: 420, level: 0, maxLevel: 4, income: 60, passengers: 32, cargo: 6 },
+  { id: 'platform', title: 'Платформа', description: 'Больше пассажиров садятся на поезд.', baseCost: 80, level: 0, maxLevel: 6, income: 9, passengers: 14, cargo: 2 },
+  { id: 'cargo', title: 'Грузовой склад', description: 'Контейнеры дают стабильную прибыль.', baseCost: 150, level: 0, maxLevel: 5, income: 18, passengers: 6, cargo: 6 },
+  { id: 'engine', title: 'Локомотив', description: 'Скорость рейсов и базовая выручка растут.', baseCost: 260, level: 0, maxLevel: 5, income: 35, passengers: 0, cargo: 0 },
+  { id: 'city', title: 'Город у станции', description: 'Дома и офисы создают новый спрос.', baseCost: 420, level: 0, maxLevel: 4, income: 60, passengers: 32, cargo: 0 },
 ];
 
 const state = { cash: 320, day: 1, lastEarned: 0 };
@@ -93,6 +94,13 @@ function makeTrain(scene) {
   return group;
 }
 
+function loadGLTF(url) {
+  return new Promise((resolve, reject) => {
+    const loader = new GLTFLoader();
+    loader.load(url, (g) => resolve(g), undefined, (e) => reject(e));
+  });
+}
+
 function buildScene() {
   const container = document.getElementById('scene');
   const scene = new THREE.Scene();
@@ -138,7 +146,34 @@ function buildScene() {
   const cargoGroup = new THREE.Group();
   const cityGroup = new THREE.Group();
   scene.add(cargoGroup, cityGroup);
-  const train = makeTrain(scene);
+
+  // Placeholder train while loading model
+  let train = new THREE.Group();
+  train.position.set(0, 0, 0);
+  scene.add(train);
+
+  // Try loading external model from /assets/train.glb. If it fails, fall back to procedural train.
+  const modelUrl = '/assets/train.glb';
+  loadGLTF(modelUrl).then((gltf) => {
+    try {
+      const model = gltf.scene || gltf.scenes?.[0] || gltf;
+      // Adjust model scale/position if necessary
+      model.position.set(0, 0, 0);
+      model.scale.setScalar(1);
+      scene.remove(train);
+      train = model;
+      scene.add(train);
+      console.info('Loaded GLTF model from', modelUrl);
+    } catch (e) {
+      console.warn('GLTF loaded but could not add to scene, using fallback train:', e);
+      scene.remove(train);
+      train = makeTrain(scene);
+    }
+  }).catch((err) => {
+    console.info('No external model found at', modelUrl, '- using procedural train. Error:', err?.message || err);
+    scene.remove(train);
+    train = makeTrain(scene);
+  });
 
   window.addEventListener('resize', () => {
     camera.aspect = container.clientWidth / container.clientHeight;
@@ -149,8 +184,12 @@ function buildScene() {
   function animate() {
     requestAnimationFrame(animate);
     const t = performance.now() * 0.001;
-    train.position.x = Math.sin(t * (0.35 + upgrades[2].level * 0.05)) * 3.2;
-    train.rotation.y = train.position.x > 3.15 ? Math.PI : 0;
+    if (train) {
+      // keep animation generic: move group if present
+      train.position.x = Math.sin(t * (0.35 + upgrades[2].level * 0.05)) * 3.2;
+      // if model faces away, flip based on position
+      train.rotation.y = train.position.x > 3.15 ? Math.PI : 0;
+    }
     station.scale.setScalar(1 + upgrades[0].level * 0.08);
     while (cargoGroup.children.length < upgrades[1].level * 3) {
       const c = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.45), new THREE.MeshStandardMaterial({ color: ['#e25b4b', '#2d9cdb', '#f2c94c'][cargoGroup.children.length % 3] }));
