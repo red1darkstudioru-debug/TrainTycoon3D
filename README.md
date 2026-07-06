@@ -1,24 +1,22 @@
-# Train Tycoon 3D
+# TrainTycoon3D
 
-Полноценный браузерный прототип железнодорожного тайкуна на нативном JavaScript и Three.js.
+Android/Kotlin/libGDX 3D starter engine for a railway tycoon.
 
-## Что есть в игре
+## Features
 
-- 3D-сцена со станцией, рельсами, локомотивом, грузовым двором и городом.
-- Экономика с балансом, игровыми днями и автоматическим доходом за рейсы.
-- Четыре ветки развития: платформа, грузовой склад, локомотив и город у станции.
-- Визуальный прогресс: купленные улучшения увеличивают станцию, добавляют контейнеры и здания.
+- Android Studio project with Gradle Kotlin DSL.
+- libGDX 3D scene with terrain, rails, station placeholders, lighting and RTS-style camera controls.
+- Automatic asset registry scans `app/src/main/assets/models`, `textures`, `sounds`, and `configs` at startup.
+- `.glb`, `.png`, `.wav`, and `.json` assets are registered without hardcoded model lists.
+- Modular packages for engine, world/grid, railway, trains, buildings, economy, save, and UI.
+- Scene2D HUD with Build, Train, Delete, and Pause controls.
 
-## Запуск
+## Run
 
-```bash
-npm start
-```
+Open the repository in Android Studio and press **Run** on the `app` configuration. Gradle downloads Android, Kotlin, libGDX, Gson, and DataStore dependencies automatically.
 
-Откройте http://localhost:5173 в браузере. Three.js загружается из CDN.
-
-## Проверка синтаксиса
+## CLI check
 
 ```bash
-npm run check
+gradle :app:assembleDebug
 ```
